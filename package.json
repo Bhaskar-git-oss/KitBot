@@ -1,0 +1,23 @@
+{
+  "name": "kit-bot",
+  "version": "1.0.0",
+  "description": "a kit bot with some extra functions i guess",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --trace-warnings index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "canvas": "^3.2.1",
+    "minecraft-data": "^3.103.0",
+    "mineflayer": "^4.35.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-viewer": "^1.33.0",
+    "figlet": "^1.6.0",
+    "gradient-string": "^2.0.1"
+  }
+}
