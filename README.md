@@ -38,7 +38,7 @@ Mineflayer bot for Minecraft that handles kit delivery and has a simple console 
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Bhaskar-git-oss/KitBot.git
 cd kit-bot
 npm install
 node index.js
