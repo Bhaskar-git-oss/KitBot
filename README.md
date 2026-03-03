@@ -24,7 +24,7 @@ Mineflayer bot for Minecraft that handles kit delivery and has a simple console 
 ## Requirements
 
 ### Linux
-- Node.js ≥ 18
+- Node.js ≥ 20
 - NPM
 
 ### Android (Termux)
