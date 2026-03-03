@@ -29,7 +29,7 @@ Mineflayer bot for Minecraft that handles kit delivery and has a simple console 
 
 ### Android (Termux)
 - Termux app
-- Node.js ≥ 18 (`pkg install nodejs`)
+- Node.js ≥ 20 (`pkg install nodejs`)
 - Git (`pkg install git`)
 - Optional canvas libs: `pkg install build-essential cairo libjpeg-turbo-dev giflib libpng-dev`
 
