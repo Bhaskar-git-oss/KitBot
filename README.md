@@ -1,4 +1,4 @@
-# NOTE-
+# NOTE
 
 - The bot is completely written by AI(GPT-5). You might hate me for that, that's not wrong, I hate it too. But still I have tested the bot myself and it works on my test environment.
 - The bot is also in its BETA phase so stuff might not work as intended.
