@@ -121,5 +121,5 @@ MIT
 
 - Myself (for the bot)
 - THC (The Helpful Clan) (for being my main clan)
-- Celery (very healthy vebetable, you should try too)
+- Celery (very healthy vegetable, you should try too)
 - Bannana (good fruit)
