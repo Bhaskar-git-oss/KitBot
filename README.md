@@ -3,7 +3,7 @@
 - The bot is completely written by AI(GPT-5). You might hate me for that, that's not wrong, I hate it too. But still I have tested the bot myself and it works on my test environment.
 - The bot is also in its BETA phase so stuff might not work as intended.
 - Contributors are limited, so not everyone's contribution will be accepted.
-- AND the bot currently doesn't work on 6b6t, as 6b6t kicks it(when it enters the portal in the login world), if someone can find a fix make a pull-request.
+- The bot now works! but I need to make some updates to improve functions.
 - and btw you have to make the bot enter the portal in the login world youself with `walk 14` in the console
 - The console needs some updates, it's good but gets messy overtime.
 
