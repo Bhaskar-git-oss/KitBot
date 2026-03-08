@@ -25,11 +25,11 @@
 - Node.js ≥ 20
 - npm
 
-### Android (Termux) — ⚠️ not fully working yet
+### Android (Termux)
 ```bash
 pkg install nodejs git
 # Optional (for canvas/viewer):
-pkg install build-essential cairo libjpeg-turbo-dev giflib libpng-dev
+pkg install build-essential libjpeg-turbo giflib libpng
 ```
 
 ---
