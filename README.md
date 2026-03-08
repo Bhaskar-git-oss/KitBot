@@ -172,3 +172,6 @@ MIT
 - THC (The Helpful Clan) — main clan on 6b6t
 - Celery (very healthy vegetable, 10/10)
 - Banana (also good)
+
+## Special Thanks to :-
+*NoSleepSmoke(Shrek)* - thanks to him I got the idea to make this bot and motivation to fix the bot when it wasn't able to join.
