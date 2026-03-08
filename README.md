@@ -25,7 +25,7 @@
 - Node.js ≥ 20
 - npm
 
-### Android (Termux)
+### Android (Termux) - UPDATES TO BE MADE TO THE COMMANDS, DOESNT WORK CURRENTLY
 ```bash
 pkg install nodejs git
 # Optional (for canvas/viewer):
