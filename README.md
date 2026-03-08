@@ -6,11 +6,18 @@
 
 ---
 
+## Changelog
+
+### Code Refactor
+- Refactored and trimmed codebase (~515 → ~230 lines, no functionality lost)
+
+---
+
 ## Features
 
 - Kit delivery via whisper — pathfinds to chest, withdraws shulkers, TPAs to player, drops items, `/kill`s to reset
 - Multi-bot support — run multiple bots with staggered spawns (3.5s apart)
-- Runtime operator management — add/remove allowed players via console or whisper without restarting
+- Runtime operator management — add/remove allowed players via console or whisper, **persisted to config.json automatically**
 - Auto-portal walk on spawn (configurable distance)
 - Auto-messages — random chat messages at a set interval
 - Head movement — random idle rotations for anti-AFK
@@ -37,7 +44,7 @@ pkg install build-essential libjpeg-turbo giflib libpng
 ## Installation
 
 ```bash
-git clone https://github.com/Bhaskar-git-oss/KitBot.git
+git clone https://github.com/your-username/KitBot.git
 cd KitBot
 npm install
 node index.js
@@ -129,7 +136,12 @@ The bot will:
 ```
 addplayer <username>
 ```
-Lets an allowed player add another player to the runtime list (no restart needed).
+Adds a player to the allowed list. Saved to `config.json` and persists across restarts.
+
+```
+removeplayer <username>
+```
+Removes a player from the allowed list. Also persisted to `config.json`.
 
 ---
 
@@ -147,8 +159,8 @@ Lets an allowed player add another player to the runtime list (no restart needed
 | `kit <player> <type> <amount>` | Manually trigger a kit delivery |
 | `inv` | Print inventory contents |
 | `status` | Show busy state for all bot instances |
-| `op add <username>` | Add a player to the runtime allowed list |
-| `op remove <username>` | Remove a player from the allowed list |
+| `op add <username>` | Add a player to the allowed list (saved to config) |
+| `op remove <username>` | Remove a player from the allowed list (saved to config) |
 | `op list` | List all currently allowed players |
 | `clear` | Clear terminal |
 | `exit` | Shutdown |
@@ -161,7 +173,7 @@ Lets an allowed player add another player to the runtime list (no restart needed
 - If spawning in a lobby, manually run `/skiplobby` on the account first.
 - Head movement and auto-messages pause automatically during kit delivery.
 - After delivery the bot `/kill`s itself — intentional, resets inventory and position.
-- Operators added via `op add` or `addplayer` whisper only persist until restart. Edit `allowedPlayers` in config for permanent access.
+- `op add/remove` and `addplayer/removeplayer` whisper commands all write to `config.json` immediately — changes survive restarts.
 - All bots stagger login by 3.5s each to avoid simultaneous connection spam.
 
 ---
