@@ -1,6 +1,6 @@
-# Chunk's KitBot
+# KitBot
 
-> Mineflayer bot for 6b6t anarchy. Handles kit delivery, auto-messages, head movement, auto-portal-walk, and reconnects. Configurable via `config.json`.
+> Mineflayer-based kitbot for anarchy servers. Handles kit delivery, auto-messages, head movement, portal-walk, operator management, and multi-bot support — all configurable via `config.json`.
 
 > **Beta** — works, but expect rough edges.
 
@@ -8,24 +8,24 @@
 
 ## Features
 
-- Kit delivery to authorized players via whisper (`kit <type> <amount>`)
-- Pathfinds to chests, withdraws items, TPAs to player, tosses shulkers
+- Kit delivery via whisper — pathfinds to chest, withdraws shulkers, TPAs to player, drops items, `/kill`s to reset
+- Multi-bot support — run multiple bots with staggered spawns (3.5s apart)
+- Runtime operator management — add/remove allowed players via console or whisper without restarting
 - Auto-portal walk on spawn (configurable distance)
-- Auto-messages module (random interval chat)
-- Head movement module (idle anti-AFK)
-- Auto-reconnect with configurable delay & max attempts
-- Web viewer on port `3007`
-- Interactive terminal console
+- Auto-messages — random chat messages at a set interval
+- Head movement — random idle rotations for anti-AFK
+- Auto-reconnect with configurable delay and max attempts
+- Color-coded, timestamped terminal logger
+- Interactive terminal REPL (controls main bot)
 
 ---
 
 ## Requirements
 
-### Linux / Windows
 - Node.js ≥ 20
 - npm
 
-### Android (Termux) - UPDATES TO BE MADE TO THE COMMANDS, DOESNT WORK CURRENTLY
+### Android (Termux) — ⚠️ not fully working yet
 ```bash
 pkg install nodejs git
 # Optional (for canvas/viewer):
@@ -37,7 +37,7 @@ pkg install build-essential cairo libjpeg-turbo-dev giflib libpng-dev
 ## Installation
 
 ```bash
-git clone https://github.com/Bhaskar-git-oss/KitBot.git
+git clone https://github.com/your-username/KitBot.git
 cd KitBot
 npm install
 node index.js
@@ -49,103 +49,120 @@ node index.js
 
 ```json
 {
-  "host": "play.6b6t.org",
+  "host": "your.server.ip",
   "port": 25565,
-  "username": "YourBotName",
-  "auth": "offline",
-  "loginCommand": "/login YourPassword",
-  "allowedPlayers": ["player1", "player2"],
-  "kitChests": {
-    "tools": { "x": 0, "y": 0, "z": 0 },
-    "armor": { "x": 0, "y": 0, "z": 0 },
-    "pvp3":  { "x": 0, "y": 0, "z": 0 },
-    "pvp2":  { "x": 0, "y": 0, "z": 0 },
-    "pvp1":  { "x": 0, "y": 0, "z": 0 }
-  },
-  "maxKits": 9,
-  "portalWalkDistance": 14,
   "reconnect": {
     "enabled": true,
     "delay": 5000,
     "maxAttempts": 5
   },
-  "modules": {
-    "kitBot": true,
-    "autoMessages": true,
-    "headMovement": true
-  },
+  "portalWalkDistance": 14,
   "autoMessages": {
     "interval": 60000,
     "messages": [
-      "your message here",
-      "another message"
+      "Your ad message here!",
+      "Another message here."
     ]
-  }
+  },
+  "bots": [
+    {
+      "username": "YourMainBot",
+      "auth": "offline",
+      "loginCommand": "/login yourpassword",
+      "allowedPlayers": ["YourUsername"],
+      "kitChests": {
+        "tools":  { "x": 0, "y": 0, "z": 0 },
+        "armor":  { "x": 0, "y": 0, "z": 0 },
+        "random": { "x": 0, "y": 0, "z": 0 },
+        "tsr":    { "x": 0, "y": 0, "z": 0 },
+        "pvp":    { "x": 0, "y": 0, "z": 0 }
+      },
+      "maxKits": 9
+    },
+    {
+      "username": "YourSecondBot",
+      "auth": "offline",
+      "loginCommand": "/login yourpassword"
+    }
+  ]
 }
 ```
 
 | Field | Description |
 |---|---|
 | `host` / `port` | Server address |
-| `username` / `auth` | Bot name, use `"offline"` for cracked |
-| `loginCommand` | Sent 2s after spawn (e.g. `/login pass`) |
-| `allowedPlayers` | Who can whisper kit requests |
-| `kitChests` | Named chest coords for each kit type |
-| `maxKits` | Max items per order (capped server-side too) |
-| `portalWalkDistance` | Blocks to walk forward on spawn (for portal entry) |
-| `reconnect.delay` | MS to wait before reconnect |
-| `reconnect.maxAttempts` | Max reconnects before shutdown |
-| `modules.*` | Toggle kitBot / autoMessages / headMovement |
+| `reconnect.enabled` | Toggle auto-reconnect |
+| `reconnect.delay` | MS to wait before reconnecting |
+| `reconnect.maxAttempts` | Max reconnects before giving up |
+| `portalWalkDistance` | Blocks to walk forward on spawn |
 | `autoMessages.interval` | MS between auto-messages |
-| `autoMessages.messages` | Pool of messages (random pick) |
+| `autoMessages.messages` | Message pool (random pick each interval) |
+| `bots` | Array of bot configs (first bot = main kit bot) |
+| `bots[].username` / `auth` | Bot name, use `"offline"` for cracked |
+| `bots[].loginCommand` | Sent 2s after spawn (e.g. `/login pass`) |
+| `bots[].allowedPlayers` | Who can use whisper commands (main bot only) |
+| `bots[].kitChests` | Named chest coords for each kit type |
+| `bots[].maxKits` | Max stacks per order |
+
+> **Multi-bot:** The first entry in `bots[]` is always the main kit bot. Additional bots only get auto-messages and head movement — no kit module.
 
 ---
 
 ## Usage
 
 ### Whisper commands (in-game)
-Only players listed in `allowedPlayers` can use these.
+
+Only players in `allowedPlayers` can use these.
+
 ```
 kit <type> <amount>
 ```
-Example: `kit pvp1 3`
+Example: `kit pvp 3`
 
-Bot will:
+The bot will:
 1. Pathfind to the chest
-2. Withdraw items
+2. Withdraw up to `<amount>` stacks
 3. `/tpa` to you
 4. Toss shulkers when within 6 blocks
 5. `/kill` itself to reset
+
+```
+addplayer <username>
+```
+Lets an allowed player add another player to the runtime list (no restart needed).
+
+---
 
 ### Console commands (terminal)
 
 | Command | Description |
 |---|---|
-| `say <msg>` | Send chat message |
-| `pos` | Print bot position |
+| `say <msg>` | Send a chat message |
+| `cmd <command>` | Run any in-game command directly |
+| `pos` | Print current bot position |
 | `gm` | Print current gamemode |
-| `goto <x> <y> <z>` | Pathfind to coords |
-| `walk <blocks>` | Walk forward N blocks |
-| `msg <player> <msg>` | Send whisper |
-| `kit <player> <type> <amount>` | Manual kit delivery |
-| `inv` | Print inventory |
-| `status` | Print busy state + module status |
+| `goto <x> <y> <z>` | Pathfind to coordinates |
+| `walk <blocks>` | Walk N blocks forward (relative to facing) |
+| `msg <player> <msg>` | Send a whisper |
+| `kit <player> <type> <amount>` | Manually trigger a kit delivery |
+| `inv` | Print inventory contents |
+| `status` | Show busy state for all bot instances |
+| `op add <username>` | Add a player to the runtime allowed list |
+| `op remove <username>` | Remove a player from the allowed list |
+| `op list` | List all currently allowed players |
 | `clear` | Clear terminal |
 | `exit` | Shutdown |
-
-### Web viewer
-Open `http://localhost:3007` — first-person view of the bot.
-
-> Block textures may look off in the viewer, that's normal.
 
 ---
 
 ## Notes
 
-- Bot auto-walks into the portal `portalWalkDistance` blocks forward ~10s after spawn. Make sure it's facing the portal on login.
-- If spawning in a lobby, manually `/skiplobby` on the account first.
-- Head movement and auto-messages pause during kit delivery.
-- After delivery the bot `/kill`s itself — this is intentional to reset inventory state.
+- The bot auto-walks `portalWalkDistance` blocks forward ~6s after spawn. Make sure it's facing the portal on login.
+- If spawning in a lobby, manually run `/skiplobby` on the account first.
+- Head movement and auto-messages pause automatically during kit delivery.
+- After delivery the bot `/kill`s itself — intentional, resets inventory and position.
+- Operators added via `op add` or `addplayer` whisper only persist until restart. Edit `allowedPlayers` in config for permanent access.
+- All bots stagger login by 3.5s each to avoid simultaneous connection spam.
 
 ---
 
@@ -154,10 +171,12 @@ Open `http://localhost:3007` — first-person view of the bot.
 | Issue | Fix |
 |---|---|
 | `ECONNREFUSED` | Check `host` / `port` in config |
-| Kits not delivered | Check `kitChests` coords and `allowedPlayers` |
-| Canvas errors (Termux) | Install `cairo`, `libpng`, etc. |
+| Kits not delivered | Verify `kitChests` coords and that your name is in `allowedPlayers` |
+| Bot stuck / not walking | Check `portalWalkDistance`, make sure bot is facing the portal |
+| Canvas errors (Termux) | Install `cairo`, `libpng`, etc. (see Requirements) |
 | Stuck in lobby | Log in manually and run `/skiplobby` |
-| Reconnect loop | Check `maxAttempts`, may need a longer `delay` |
+| Reconnect loop | Increase `delay` or `maxAttempts` in reconnect config |
+| Second bot not connecting | Check stagger timing — it spawns 3.5s after the first |
 
 ---
 
@@ -169,9 +188,7 @@ MIT
 
 ## Thanks
 
-- THC (The Helpful Clan) — main clan on 6b6t
+- NoSleepSmoke (Shrek) — original idea and motivation to get it working
+- THC (The Helpful Clan)
 - Celery (very healthy vegetable, 10/10)
 - Banana (also good)
-
-## Special Thanks to :-
-*NoSleepSmoke(Shrek)* - thanks to him I got the idea to make this bot and motivation to fix the bot when it wasn't able to join.
