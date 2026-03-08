@@ -37,7 +37,7 @@ pkg install build-essential cairo libjpeg-turbo-dev giflib libpng-dev
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/KitBot.git
+git clone https://github.com/Bhaskar-git-oss/KitBot.git
 cd KitBot
 npm install
 node index.js
