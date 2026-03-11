@@ -7,6 +7,9 @@
     "maxAttempts": 5
   },
   "portalWalkDistance": 14,
+  "kitCooldownMs": 600000,
+  "deliveryTimeoutMs": 45000,
+  "queueNotifyOnStart": true,
   "autoMessages": {
     "interval": 60000,
     "messages": [
