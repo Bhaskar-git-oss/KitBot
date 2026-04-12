@@ -1,39 +1,39 @@
 # KitBot
 
-> Mineflayer-based kitbot for anarchy servers. Handles kit delivery, queue management, auto-messages, head movement, portal-walk, operator management, and multi-bot support — all configurable via `config.json`.
+> Mineflayer-based kitbot for anarchy. Whisper a kit type, get your stuff — queue system, multi-bot support, chest scanning, the works. Config lives in `config.json`.
 
-> **Beta** — works, but expect rough edges.
+> **Maintence Mode** — it works, and I believe it might be enough, if you want more features or fixes, open a issue.
 
 ---
 
 ## Changelog
 
 ### Latest
-- FIFO queue system with 10-minute cooldown windows — one player served per window, others stack up in order
-- Per-player queue notifications — told when queued, their position, ETA, and when it's their turn
-- Unauthorized whisper detection — unknown players trying known commands get rejected
-- `stocks` command — bot scans all configured chests and reports contents in-game and in console
-- `help` command — available via whisper and console; op commands hidden from players
-- `window` / `cooldown` console commands — check remaining cooldown window time
-- `queue` console command — view current delivery queue
+- FIFO queue with 10-min cooldown windows — one delivery per window, rest stack up in order
+- Queue notifications — players get told their position, ETA, and when it's their turn
+- Unauthorized whisper detection — randoms trying commands get rejected
+- `stocks` — bot scans all configured chests and dumps contents in-game + console
+- `help` — works via whisper and console; op commands stay hidden from players
+- `window` / `cooldown` — check remaining cooldown time from console
+- `queue` — see who's waiting
 
 ### Previous
-- Refactored and trimmed codebase (~515 → ~230 lines, no functionality lost)
+- Big refactor — ~515 → ~230 lines, nothing removed
 
 ---
 
 ## Features
 
-- Kit delivery via whisper — pathfinds to chest, withdraws shulkers, TPAs to player, drops items, `/kill`s to reset
-- FIFO queue with cooldown windows — one delivery per 10-minute window, fair ordering, automatic ETA updates
-- Chest stock scanning — checks all kit chests and reports what's in them
-- Multi-bot support — run multiple bots with staggered logins (3.5s apart)
-- Runtime operator management — add/remove allowed players via console or whisper, persisted to `config.json`
-- Auto-portal walk on spawn (configurable distance)
-- Auto-messages — random chat messages at a set interval, paused during delivery
-- Head movement — random idle rotations for anti-AFK, paused during delivery
-- Auto-reconnect with configurable delay and max attempts
-- Color-coded, timestamped terminal logger
+- Kit delivery via whisper — pathfinds to chest, grabs shulkers, TPAs to player, drops items, `/kill`s to reset
+- FIFO queue with cooldown windows — one delivery per 10 mins, fair order, auto ETA updates
+- Chest stock scanning — check all kit chests at once
+- Multi-bot support — staggered logins (3.5s apart)
+- Runtime op management — add/remove players via console or whisper, saves to `config.json`
+- Auto portal walk on spawn (configurable distance)
+- Auto-messages — random chat spam at set intervals, pauses during delivery
+- Head movement — random idle rotations so it doesn't look AFK, pauses during delivery
+- Auto-reconnect — configurable delay and max attempts
+- Color-coded timestamped terminal logger
 - Interactive terminal REPL (controls main bot)
 
 ---
@@ -52,7 +52,7 @@ pkg install build-essential libjpeg-turbo giflib libpng
 
 ---
 
-## Installation
+## Setup
 
 ```bash
 git clone https://github.com/Bhaskar-git-oss/KitBot.git
@@ -63,7 +63,7 @@ node index.js
 
 ---
 
-## Configuration (`config.json`)
+## Config (`config.json`)
 
 ```json
 {
@@ -113,74 +113,74 @@ node index.js
 |---|---|
 | `host` / `port` | Server address |
 | `reconnect.enabled` | Toggle auto-reconnect |
-| `reconnect.delay` | MS to wait before reconnecting |
-| `reconnect.maxAttempts` | Max reconnects before giving up |
+| `reconnect.delay` | MS before reconnecting |
+| `reconnect.maxAttempts` | Give up after this many attempts |
 | `portalWalkDistance` | Blocks to walk forward on spawn |
-| `kitCooldownMs` | Cooldown window length in ms (default 600000 = 10min) |
-| `deliveryTimeoutMs` | How long to wait for TPA before timing out (default 45000) |
-| `queueNotifyOnStart` | Notify player when it's their turn (default true) |
+| `kitCooldownMs` | Cooldown window length (default 600000 = 10min) |
+| `deliveryTimeoutMs` | TPA wait timeout (default 45000) |
+| `queueNotifyOnStart` | Ping player when it's their turn (default true) |
 | `autoMessages.interval` | MS between auto-messages |
-| `autoMessages.messages` | Message pool (random pick each interval) |
-| `bots` | Array of bot configs (first bot = main kit bot) |
+| `autoMessages.messages` | Message pool, picks randomly |
+| `bots` | Bot array — first entry is always the main kit bot |
 | `bots[].username` / `auth` | Bot name, use `"offline"` for cracked |
-| `bots[].loginCommand` | Sent 2s after spawn (e.g. `/login pass`) |
-| `bots[].allowedPlayers` | Who can use whisper commands (main bot only) |
-| `bots[].kitChests` | Named chest coords for each kit type |
+| `bots[].loginCommand` | Sent 2s after spawn |
+| `bots[].allowedPlayers` | Who can use kit commands (main bot only) |
+| `bots[].kitChests` | Named coords for each kit type |
 | `bots[].maxKits` | Max stacks per order |
 
-> **Multi-bot:** The first entry in `bots[]` is always the main kit bot. Additional bots only get auto-messages and head movement — no kit module.
+> **Multi-bot:** First entry in `bots[]` = main kit bot. Extra bots only get auto-messages and head movement — no kit module.
 
 ---
 
 ## Usage
 
-### Whisper commands (in-game)
+### Whisper commands
 
 Only players in `allowedPlayers` can request kits. `help` and `stocks` are open to anyone.
 
 | Command | Description |
 |---|---|
-| `kit <type> [count]` | Request a kit — queued if window is active |
-| `stocks` | Show what's currently in each kit chest |
+| `kit <type> [count]` | Request a kit — gets queued if cooldown is active |
+| `stocks` | See what's in each chest |
 | `help` | Show available commands |
-| `addplayer <username>` | Add a player to the whitelist (ops only) |
-| `removeplayer <username>` | Remove a player from the whitelist (ops only) |
+| `addplayer <username>` | Whitelist a player (ops only) |
+| `removeplayer <username>` | Remove a player (ops only) |
 
-**Kit delivery flow:**
-1. Bot pathfinds to the chest
-2. Withdraws up to `<count>` stacks
+**Delivery flow:**
+1. Bot pathfinds to chest
+2. Grabs up to `<count>` stacks
 3. `/tpa`s to you
-4. Tosses shulkers when within 6 blocks
-5. `/kill`s itself to reset
+4. Drops shulkers when within 6 blocks
+5. `/kill`s to reset
 
 **Queue flow:**
-- Orders are processed one at a time, FIFO
-- A 10-minute cooldown window starts after each delivery
-- Players are notified of their queue position and estimated wait
-- When it's your turn you get a notification before the bot starts
+- FIFO, one at a time
+- 10-min cooldown window starts after each delivery
+- Everyone gets their position + ETA
+- You get pinged when it's your turn
 
 ---
 
-### Console commands (terminal)
+### Console commands
 
 | Command | Description |
 |---|---|
-| `say <msg>` | Send a chat message |
+| `say <msg>` | Send chat |
 | `cmd <command>` | Run any in-game command |
-| `pos` | Print current bot position |
-| `gm` | Print current gamemode |
-| `inv` | Print inventory contents |
-| `goto <x> <y> <z>` | Pathfind to coordinates |
-| `walk <blocks>` | Walk N blocks forward (relative to facing) |
+| `pos` | Print bot position |
+| `gm` | Print gamemode |
+| `inv` | Print inventory |
+| `goto <x> <y> <z>` | Pathfind to coords |
+| `walk <blocks>` | Walk N blocks forward |
 | `msg <player> <msg>` | Send a whisper |
-| `kit <player> <type> [count]` | Manually trigger a kit delivery |
-| `stocks` | Scan all kit chests and print contents |
-| `queue` | Show current delivery queue |
-| `window` / `cooldown` | Show remaining cooldown window time |
-| `status` | Show busy state for all bot instances |
-| `op add <username>` | Add a player to the whitelist (saved to config) |
-| `op remove <username>` | Remove a player from the whitelist (saved to config) |
-| `op list` | List all currently allowed players |
+| `kit <player> <type> [count]` | Manually trigger delivery |
+| `stocks` | Scan all chests |
+| `queue` | Show current queue |
+| `window` / `cooldown` | Show remaining cooldown time |
+| `status` | Busy state for all bots |
+| `op add <username>` | Whitelist a player (saves to config) |
+| `op remove <username>` | Remove a player (saves to config) |
+| `op list` | List all allowed players |
 | `clear` | Clear terminal |
 | `exit` | Shutdown |
 | `help` | Show all commands |
@@ -189,13 +189,13 @@ Only players in `allowedPlayers` can request kits. `help` and `stocks` are open 
 
 ## Notes
 
-- The bot auto-walks `portalWalkDistance` blocks forward ~6s after spawn. Make sure it's facing the portal on login.
-- If spawning in a lobby, manually run `/skiplobby` on the account first.
-- Head movement and auto-messages pause automatically during kit delivery.
-- After delivery the bot `/kill`s itself — intentional, resets inventory and position.
-- `op` console commands and `addplayer`/`removeplayer` whisper commands all write to `config.json` immediately — changes survive restarts.
-- All bots stagger login by 3.5s to avoid simultaneous connection spam.
-- The cooldown window is bot-wide, not per-player. One player per window, everyone else waits in queue.
+- Bot auto-walks `portalWalkDistance` blocks ~6s after spawn. Make sure it's facing the portal on login.
+- If it spawns in a lobby, log in manually and run `/skiplobby` first.
+- Head movement and auto-messages pause during delivery automatically.
+- The `/kill` after delivery is intentional — resets inventory and position.
+- `op` and `addplayer`/`removeplayer` commands write to `config.json` immediately. Changes survive restarts.
+- Bots stagger login by 3.5s to avoid spamming the server.
+- Cooldown is bot-wide, not per-player — one delivery per window, everyone else waits.
 
 ---
 
@@ -204,12 +204,12 @@ Only players in `allowedPlayers` can request kits. `help` and `stocks` are open 
 | Issue | Fix |
 |---|---|
 | `ECONNREFUSED` | Check `host` / `port` in config |
-| Kits not delivered | Verify `kitChests` coords and that your name is in `allowedPlayers` |
-| Bot stuck / not walking | Check `portalWalkDistance`, make sure bot is facing the portal |
-| Canvas errors (Termux) | Install `cairo`, `libpng`, etc. (see Requirements) |
-| Stuck in lobby | Log in manually and run `/skiplobby` |
-| Reconnect loop | Increase `delay` or `maxAttempts` in reconnect config |
-| Both bots connect simultaneously on first run | Server ghost sessions from previous run — wait a few seconds before restarting |
+| Kits not delivering | Check `kitChests` coords + make sure you're in `allowedPlayers` |
+| Bot stuck / not walking | Check `portalWalkDistance`, make sure it's facing the portal |
+| Canvas errors (Termux) | Install `cairo`, `libpng`, etc. — see Requirements |
+| Stuck in lobby | Log in manually, run `/skiplobby` |
+| Reconnect loop | Bump up `delay` or `maxAttempts` |
+| Both bots connect at the same time on first run | Ghost sessions from the last run — wait a few seconds then restart |
 | Delivery timed out | Player didn't accept TPA in time — increase `deliveryTimeoutMs` or re-order |
 
 ---
@@ -222,7 +222,7 @@ MIT
 
 ## Thanks
 
-- NoSleepSmoke (Shrek) — original idea and motivation to get it working
+- NoSleepSmoke (Shrek) — original idea + reason this exists
 - THC (The Helpful Clan)
 - Celery (very healthy vegetable, 10/10)
 - Banana (also good)
