@@ -224,5 +224,3 @@ MIT
 
 - NoSleepSmoke (Shrek) — original idea + reason this exists
 - THC (The Helpful Clan)
-- Celery (very healthy vegetable, 10/10)
-- Banana (also good)
