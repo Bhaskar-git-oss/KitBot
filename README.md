@@ -2,7 +2,7 @@
 
 > Mineflayer-based kitbot for anarchy. Whisper a kit type, get your stuff — queue system, multi-bot support, chest scanning, the works. Config lives in `config.json`.
 
-> **Maintence Mode** — it works, and I believe it might be enough, if you want more features or fixes, open a issue.
+> **Maintence Mode** — it works, and I believe it might be enough, but there might be a ton of features people might need so open up a issue for suggestions.
 
 ---
 
@@ -16,9 +16,6 @@
 - `help` — works via whisper and console; op commands stay hidden from players
 - `window` / `cooldown` — check remaining cooldown time from console
 - `queue` — see who's waiting
-
-### Previous
-- Big refactor — ~515 → ~230 lines, nothing removed
 
 ---
 
@@ -52,7 +49,7 @@ pkg install build-essential libjpeg-turbo giflib libpng
 
 ---
 
-## Setup
+## Setup (same for Android and Linux)
 
 ```bash
 git clone https://github.com/Bhaskar-git-oss/KitBot.git
@@ -95,7 +92,7 @@ node index.js
         "tools":  { "x": 0, "y": 0, "z": 0 },
         "armor":  { "x": 0, "y": 0, "z": 0 },
         "random": { "x": 0, "y": 0, "z": 0 },
-        "tsr":    { "x": 0, "y": 0, "z": 0 },
+        "tsr-kit":    { "x": 0, "y": 0, "z": 0 },
         "pvp":    { "x": 0, "y": 0, "z": 0 }
       },
       "maxKits": 9
