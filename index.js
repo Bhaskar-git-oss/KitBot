@@ -13,7 +13,7 @@ console.log(gradient.pastel.multiline(figlet.textSync("> KitBot", { font: "Slant
 
 // =============================================================================
 // LOGGER
-// Colored, timestamped output that plays nicely with the readline prompt.
+// Colored, timestamped output
 // =============================================================================
 
 const C = {
@@ -98,9 +98,6 @@ function formatTime(ms) {
 
 // =============================================================================
 // DISPLAY NAME HELPER
-// Shulker boxes on anarchy servers often have custom names set via anvil.
-// Mineflayer returns them as raw JSON text components which may also contain
-// legacy § formatting codes. This strips both and falls back to registry name.
 // =============================================================================
 
 function getDisplayName(item) {
