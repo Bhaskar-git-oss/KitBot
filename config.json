@@ -1,0 +1,38 @@
+{
+  "host": "your.server.ip",
+  "port": 25565,
+  "reconnect": {
+    "enabled": true,
+    "delay": 5000,
+    "maxAttempts": 5
+  },
+  "portalWalkDistance": 14,
+  "kitCooldownMs": 600000,
+  "deliveryTimeoutMs": 45000,
+  "queueNotifyOnStart": true,
+  "autoMessages": {
+    "interval": 60000,
+    "messages": ["Your ad message here!", "Another message here."]
+  },
+  "bots": [
+    {
+      "username": "YourBotName",
+      "auth": "offline",
+      "loginCommand": "/login yourpassword",
+      "allowedPlayers": ["YourUsername"],
+      "kitChests": {
+        "tools": { "x": 0, "y": 0, "z": 0 },
+        "armor": { "x": 0, "y": 0, "z": 0 },
+        "random": { "x": 0, "y": 0, "z": 0 },
+        "tsr": { "x": 0, "y": 0, "z": 0 },
+        "pvp": { "x": 0, "y": 0, "z": 0 }
+      },
+      "maxKits": 9
+    },
+    {
+      "username": "YourSecondBot",
+      "auth": "offline",
+      "loginCommand": "/login yourpassword"
+    }
+  ]
+}
