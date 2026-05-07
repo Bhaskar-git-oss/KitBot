@@ -11,25 +11,63 @@ const queue = require("./queue");
 const { formatTime } = require("./helpers/formatting");
 
 function createBotInstance(botConfig, isMain, config) {
-  // Define enqueueKit first
+  // Define enqueueKit first so it's available to callbacks
   let enqueueKit;
   let bot, state;
 
-  // Create wrapper for startKitModule that will be called from spawn handler
-  const startKitModuleWrapper = () => {
+  // Create wrapper callbacks object
+  const callbacksObj = {
+    startKitModule: null, // Will be set after enqueueKit is defined
+    startAutoMessages: (bot, state, botConfig, config) => {
+      startAutoMessages(bot, state, botConfig, config);
+    },
+    startHeadMovement: (bot, state) => {
+      startHeadMovement(bot, state);
+    },
+  };
+
+  // Create bot instance with callbacks
+  const botInstance = createBot(botConfig, isMain, config, callbacksObj);
+  bot = botInstance.bot;
+  state = botInstance.state;
+
+  // NOW define enqueueKit and set the callback
+  enqueueKit = function (username, kitType, count) {
+    const alreadyQueued = queue
+      .getKitQueue()
+      .some((j) => j.username === username);
+    if (alreadyQueued) {
+      const pos =
+        queue.getKitQueue().findIndex((j) => j.username === username) + 1;
+      bot.chat(`/w ${username} Already queued at position ${pos}.`);
+      return;
+    }
+
+    queue.getKitQueue().push({ username, kitType, count: count || 1 });
+    const pos = queue.getKitQueue().length;
+    const rem = queue.getWindowRemaining();
+
+    if (pos === 1 && rem === 0)
+      bot.chat(`/w ${username} No queue — processing now.`);
+    else
+      bot.chat(
+        `/w ${username} Queued at position ${pos} — est. wait ${formatTime(rem + queue.getCooldownMS() * (pos - 1))}.`,
+      );
+
+    log(
+      "QUEUE",
+      `${username} queued for ${kitType} x${count || 1} (pos ${pos})`,
+      bot.username,
+    );
+    processQueue();
+  };
+
+  // Set the startKitModule callback NOW that enqueueKit exists
+  callbacksObj.startKitModule = () => {
     if (bot && enqueueKit) {
       startKitModule(bot, botConfig, enqueueKit);
     }
   };
-
-  const botInstance = createBot(
-    botConfig,
-    isMain,
-    config,
-    startKitModuleWrapper,
-  );
-  bot = botInstance.bot;
-  state = botInstance.state;
 
   // Queue processing
   async function processQueue() {
@@ -87,36 +125,6 @@ function createBotInstance(botConfig, isMain, config) {
     queue.setQueueRunning(false);
     log("QUEUE", "Queue empty", bot.username);
   }
-
-  enqueueKit = function (username, kitType, count) {
-    const alreadyQueued = queue
-      .getKitQueue()
-      .some((j) => j.username === username);
-    if (alreadyQueued) {
-      const pos =
-        queue.getKitQueue().findIndex((j) => j.username === username) + 1;
-      bot.chat(`/w ${username} Already queued at position ${pos}.`);
-      return;
-    }
-
-    queue.getKitQueue().push({ username, kitType, count: count || 1 });
-    const pos = queue.getKitQueue().length;
-    const rem = queue.getWindowRemaining();
-
-    if (pos === 1 && rem === 0)
-      bot.chat(`/w ${username} No queue — processing now.`);
-    else
-      bot.chat(
-        `/w ${username} Queued at position ${pos} — est. wait ${formatTime(rem + queue.getCooldownMS() * (pos - 1))}.`,
-      );
-
-    log(
-      "QUEUE",
-      `${username} queued for ${kitType} x${count || 1} (pos ${pos})`,
-      bot.username,
-    );
-    processQueue();
-  };
 
   return {
     get busy() {

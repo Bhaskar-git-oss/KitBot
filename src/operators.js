@@ -5,21 +5,16 @@ let config = null;
 let admins = null;
 let users = null;
 
-// Hardcoded admins
-const HARDCODED_ADMINS = new Set([
-  "ChunkNomadIND",
-  "StubbledBanana",
-  "nomad_912",
-  "azan",
-  "webber",
-]);
-
 function initOperators(loadedConfig) {
   config = loadedConfig;
-  // Load admins from config or use hardcoded
-  admins = new Set(config.bots[0]?.admins || [...HARDCODED_ADMINS]);
+
+  // Load admins from config (no hardcoded fallback)
+  admins = new Set(config.bots[0]?.admins || []);
+
   // Load users from config
   users = new Set(config.bots[0]?.allowedPlayers || []);
+
+  log("BOOT", `Loaded ${admins.size} admins, ${users.size} whitelisted users`);
 }
 
 function saveOps() {
@@ -28,7 +23,7 @@ function saveOps() {
   fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
 }
 
-// User management (via whisper by admins)
+// User management
 function userAdd(target, by = "console") {
   if (users.has(target)) return `${target} is already whitelisted.`;
   users.add(target);

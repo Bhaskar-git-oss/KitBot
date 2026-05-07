@@ -1,5 +1,3 @@
-const readline = require("readline");
-
 const C = {
   reset: "\x1b[0m",
   gray: "\x1b[90m",
@@ -24,10 +22,8 @@ const LOG_COLORS = {
   ALERT: C.red,
 };
 
-let rl = null;
-
-function initLogger(readlineInterface) {
-  rl = readlineInterface;
+function initLogger() {
+  // No-op now - logger doesn't need readline reference
 }
 
 function log(type, msg, bot = null) {
@@ -35,8 +31,8 @@ function log(type, msg, bot = null) {
   const color = LOG_COLORS[type] || C.gray;
   const prefix = bot ? `${C.yellow}[${bot}]${C.reset} ` : "";
   const line = `${C.gray}[${time}]${C.reset} ${color}[${type}]${C.reset} ${prefix}${msg}`;
+
   console.log(line);
-  if (rl) rl.prompt(true);
 }
 
 module.exports = {

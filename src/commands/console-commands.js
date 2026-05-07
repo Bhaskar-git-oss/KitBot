@@ -30,41 +30,79 @@ async function handleConsoleCommand(
   args,
   bot,
   instances,
-  botConfig,
+  config,
   enqueueKitFn,
   handleKitFn,
 ) {
   const [cmd_name, a1, a2, a3] = [cmd, args[1], args[2], args[3]];
 
   try {
+    // Validate bot exists for commands that need it
+    if (
+      [
+        "say",
+        "cmd",
+        "pos",
+        "gm",
+        "inv",
+        "goto",
+        "walk",
+        "msg",
+        "kit",
+        "stocks",
+      ].includes(cmd_name) &&
+      !bot
+    ) {
+      log("ERROR", "Bot not connected yet");
+      return;
+    }
+
     switch (cmd_name) {
       case "say":
         bot.chat(args.slice(1).join(" "));
+        log("CONSOLE", `-> Chat: ${args.slice(1).join(" ")}`);
         break;
+
       case "cmd":
         if (a1) {
           bot.chat(args.slice(1).join(" "));
-          log("CONSOLE", `-> ${args.slice(1).join(" ")}`);
+          log("CONSOLE", `-> Command: ${args.slice(1).join(" ")}`);
         }
         break;
+
       case "pos":
-        log("CONSOLE", JSON.stringify(bot.entity?.position));
+        if (!bot.entity) {
+          log("CONSOLE", "Bot entity not loaded");
+          break;
+        }
+        log("CONSOLE", JSON.stringify(bot.entity.position));
         break;
+
       case "gm":
-        log("CONSOLE", `Gamemode: ${bot.game?.gameMode}`);
+        if (!bot.game) {
+          log("CONSOLE", "Bot game data not loaded");
+          break;
+        }
+        log("CONSOLE", `Gamemode: ${bot.game.gameMode}`);
         break;
+
       case "inv":
+        if (!bot.inventory) {
+          log("CONSOLE", "Bot inventory not loaded");
+          break;
+        }
         log("CONSOLE", JSON.stringify(bot.inventory.items(), null, 2));
         break;
+
       case "clear":
         console.clear();
         break;
-      case "exit":
-        log("BOOT", "Shutting down");
-        process.exit(0);
-        break;
 
       case "players": {
+        if (!bot.players) {
+          log("CONSOLE", "Bot players data not loaded");
+          break;
+        }
         const playerCount = Object.keys(bot.players).length;
         if (playerCount < 50) {
           log("ALERT", `Only ${playerCount} players online (< 50)`);
@@ -75,25 +113,46 @@ async function handleConsoleCommand(
       }
 
       case "goto":
-        if (args.length < 4) break;
-        await bot.pathfinder.goto(
-          new GoalBlock(parseInt(a1), parseInt(a2), parseInt(a3)),
-        );
-        log("MOVE", "Arrived");
+        if (args.length < 4) {
+          log("CONSOLE", "Usage: goto <x> <y> <z>");
+          break;
+        }
+        try {
+          await bot.pathfinder.goto(
+            new GoalBlock(parseInt(a1), parseInt(a2), parseInt(a3)),
+          );
+          log("MOVE", "Arrived");
+        } catch (err) {
+          log("ERROR", `Pathfind failed: ${err.message}`);
+        }
         break;
 
       case "walk": {
         const blocks = parseFloat(a1);
-        if (!blocks || blocks <= 0) break;
-        const { x, y, z } = forwardPos(bot.entity, blocks);
-        log("MOVE", `Walking ${blocks} blocks`);
-        await bot.pathfinder.goto(new GoalBlock(x, y, z));
-        log("MOVE", "Arrived");
+        if (!blocks || blocks <= 0) {
+          log("CONSOLE", "Usage: walk <blocks>");
+          break;
+        }
+        if (!bot.entity) {
+          log("CONSOLE", "Bot entity not loaded");
+          break;
+        }
+        try {
+          const { x, y, z } = forwardPos(bot.entity, blocks);
+          log("MOVE", `Walking ${blocks} blocks`);
+          await bot.pathfinder.goto(new GoalBlock(x, y, z));
+          log("MOVE", "Arrived");
+        } catch (err) {
+          log("ERROR", `Walk failed: ${err.message}`);
+        }
         break;
       }
 
       case "msg":
-        if (args.length < 3) break;
+        if (args.length < 3) {
+          log("CONSOLE", "Usage: msg <user> <text>");
+          break;
+        }
         bot.chat(`/w ${a1} ${args.slice(2).join(" ")}`);
         log("CONSOLE", `-> Whisper to ${a1}`);
         break;
@@ -108,12 +167,22 @@ async function handleConsoleCommand(
 
       case "stocks": {
         log("CONSOLE", "Scanning chests...");
-        const result = await scanChests(bot, botConfig);
-        result?.split("\n").forEach((l) => log("CONSOLE", l));
+        try {
+          // Get main bot's config (index 0)
+          const botConfig = config.bots[0];
+          if (!botConfig) {
+            log("CONSOLE", "No bot config found");
+            break;
+          }
+          const result = await scanChests(bot, botConfig);
+          result?.split("\n").forEach((l) => log("CONSOLE", l));
+        } catch (err) {
+          log("ERROR", `Stocks scan failed: ${err.message}`);
+        }
         break;
       }
 
-      case "queue":
+      case "queue": {
         const kitQueue = queue.getKitQueue();
         if (!kitQueue.length) {
           log("QUEUE", "Queue is empty");
@@ -123,6 +192,7 @@ async function handleConsoleCommand(
           log("QUEUE", `${i + 1}. ${j.username} -> ${j.kitType} x${j.count}`),
         );
         break;
+      }
 
       case "window":
       case "cooldown": {
@@ -138,10 +208,7 @@ async function handleConsoleCommand(
 
       case "status":
         instances.forEach((inst, i) =>
-          log(
-            "CONSOLE",
-            `bot${i} (${botConfig.bots[i].username}) busy=${inst?.busy ?? "not started"}`,
-          ),
+          log("CONSOLE", `bot${i} busy=${inst?.busy ?? "not started"}`),
         );
         break;
 
@@ -154,7 +221,7 @@ async function handleConsoleCommand(
           log("CONSOLE", "Unknown command. Type 'help' for a list.");
     }
   } catch (e) {
-    log("ERROR", e.message);
+    log("ERROR", `Unexpected error: ${e.message}`);
   }
 }
 

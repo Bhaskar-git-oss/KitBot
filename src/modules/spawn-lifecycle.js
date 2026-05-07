@@ -18,12 +18,36 @@ const dlog = (type, msg, key) => {
 function createSpawnHandler(bot, state, botConfig, config, isMain, callbacks) {
   return async () => {
     dlog("EVENT", "Spawned", "spawn");
-    bot.pathfinder.stop();
+
+    // Safety check: ensure entity exists before accessing pathfinder
+    if (!bot.entity) {
+      log("ERROR", "Spawn handler: bot.entity is undefined", bot.username);
+      return;
+    }
+
+    // Stop any active pathfinding
+    try {
+      bot.pathfinder.stop();
+    } catch (e) {
+      log("ERROR", `Failed to stop pathfinder: ${e.message}`, bot.username);
+    }
 
     // Reset kick counter on successful spawn
     state.consecutiveKicks = 0;
 
-    if (state.initialSetupDone) return setMovements(bot);
+    if (state.initialSetupDone) {
+      // On respawn, just reset movements and return
+      try {
+        setMovements(bot);
+      } catch (e) {
+        log(
+          "ERROR",
+          `Failed to set movements on respawn: ${e.message}`,
+          bot.username,
+        );
+      }
+      return;
+    }
 
     state.initialSetupDone = true;
     state.reconnectAttempts = 0;
@@ -35,25 +59,51 @@ function createSpawnHandler(bot, state, botConfig, config, isMain, callbacks) {
         log("BOOT", "Sent login command", bot.username);
       }, 2000);
 
+    // Wait for entity to be fully loaded
     await bot.waitForTicks(40);
-    setMovements(bot);
-    log("BOOT", "Pathfinder ready", bot.username);
+
+    try {
+      setMovements(bot);
+      log("BOOT", "Pathfinder ready", bot.username);
+    } catch (e) {
+      log(
+        "ERROR",
+        `Failed to initialize pathfinder: ${e.message}`,
+        bot.username,
+      );
+      return;
+    }
 
     if (isMain && callbacks.startKitModule) callbacks.startKitModule();
     if (callbacks.startAutoMessages)
       callbacks.startAutoMessages(bot, state, botConfig, config);
 
     setTimeout(async () => {
+      // Safety check before portal walk
+      if (!bot.entity) {
+        log(
+          "ERROR",
+          "Portal walk cancelled: bot.entity is undefined",
+          bot.username,
+        );
+        return;
+      }
+
       const dist =
         botConfig.portalWalkDistance || config.portalWalkDistance || 14;
-      const { x, y, z } = forwardPos(bot.entity, dist);
-      log("MOVE", `Walking ${dist} blocks into portal`, bot.username);
       try {
+        const { x, y, z } = forwardPos(bot.entity, dist);
+        log("MOVE", `Walking ${dist} blocks into portal`, bot.username);
         await bot.pathfinder.goto(new GoalBlock(x, y, z));
         log("MOVE", "Portal walk done", bot.username);
-      } catch {
-        log("MOVE", "Portal walk timed out", bot.username);
+      } catch (err) {
+        log(
+          "MOVE",
+          `Portal walk timed out or failed: ${err.message}`,
+          bot.username,
+        );
       }
+
       if (callbacks.startHeadMovement) callbacks.startHeadMovement(bot, state);
     }, 6000);
 
@@ -116,7 +166,8 @@ function createBot(botConfig, isMain, config, callbacks) {
       if (state.consecutiveKicks >= 5) {
         log(
           "ALERT",
-          `${C.red}${name} kicked 5+ times consecutively - CHECK SERVER!${C.reset}`,
+          `${name} kicked 5+ times consecutively - CHECK SERVER!`,
+          name,
         );
       }
       scheduleReconnect(spawn, state, botConfig, config, state.bot);
@@ -126,11 +177,22 @@ function createBot(botConfig, isMain, config, callbacks) {
       dlog("EVENT", "Disconnected");
       scheduleReconnect(spawn, state, botConfig, config, state.bot);
     });
+
     state.bot.on("respawn", () => {
       dlog("EVENT", "Respawned", "respawn");
-      state.bot.pathfinder.stop();
-      setMovements(state.bot);
+      // Safety: wait a tick before trying to stop pathfinder
+      try {
+        state.bot.pathfinder.stop();
+      } catch (e) {
+        log("ERROR", `Respawn: pathfinder stop failed: ${e.message}`, name);
+      }
+      try {
+        setMovements(state.bot);
+      } catch (e) {
+        log("ERROR", `Respawn: setMovements failed: ${e.message}`, name);
+      }
     });
+
     state.bot.on(
       "spawn",
       createSpawnHandler(
