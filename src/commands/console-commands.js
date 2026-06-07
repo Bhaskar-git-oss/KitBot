@@ -49,7 +49,7 @@ async function handleConsoleCommand(
         "msg",
         "kit",
         "stocks",
-      ].includes(cmd_name) &&
+      ].includes(cmd) &&
       !bot
     ) {
       log("ERROR", "Bot not connected yet");
