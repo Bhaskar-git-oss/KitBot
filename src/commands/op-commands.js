@@ -15,7 +15,7 @@ function handleOpCommand(a1, a2) {
     log("OP", `Admins: ${[...admins].join(", ") || "none"}`);
     return;
   }
-  log("CONSOLE", "Usage: admin <add|remove|list> [username]");
+  log("CONSOLE", "Usage: op <add|remove|list> [username]");
 }
 
 module.exports = {

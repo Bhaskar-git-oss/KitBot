@@ -12,8 +12,6 @@ async function scanChests(bot, botConfig) {
   }
 
   const results = [];
-
-  // Verify bot has valid position
   if (!bot.entity || !bot.entity.position) {
     return "Bot entity not loaded - cannot scan chests.";
   }
@@ -21,8 +19,6 @@ async function scanChests(bot, botConfig) {
   for (const [kitType, cp] of Object.entries(chests)) {
     try {
       const pos = new Vec3(cp.x, cp.y, cp.z);
-
-      // Safe distance calculation
       let currentDist = -1;
       try {
         currentDist = bot.entity.position.distanceTo(pos);
@@ -35,16 +31,12 @@ async function scanChests(bot, botConfig) {
         results.push(`[${kitType}] error calculating distance`);
         continue;
       }
-
-      // If unreasonably far (>100000), likely a calc error or unloaded
       if (currentDist > 100000) {
         results.push(
           `[${kitType}] distance calculation error (${currentDist.toFixed(1)} blocks)`,
         );
         continue;
       }
-
-      // Only pathfind if actually far away
       if (currentDist > SAFE_DISTANCE) {
         log(
           "MOVE",
@@ -60,11 +52,8 @@ async function scanChests(bot, botConfig) {
             `Pathfinder failed for ${kitType}: ${pathErr.message}`,
             bot.username,
           );
-          // Continue anyway - might be close enough to interact
         }
       }
-
-      // Verify final distance
       const finalDist = bot.entity.position.distanceTo(pos);
       if (finalDist > REACH_DISTANCE) {
         results.push(
@@ -72,17 +61,14 @@ async function scanChests(bot, botConfig) {
         );
         continue;
       }
-
-      // Verify chest block exists
       const block = bot.blockAt(pos);
       if (!block) {
         results.push(`[${kitType}] chest not found at ${pos}`);
         continue;
       }
-
-      // Open and scan
       let chest;
       try {
+        await new Promise((r) => setTimeout(r, 1000));
         chest = await bot.openContainer(block);
       } catch (openErr) {
         results.push(`[${kitType}] failed to open: ${openErr.message}`);

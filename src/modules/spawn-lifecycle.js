@@ -18,25 +18,18 @@ const dlog = (type, msg, key) => {
 function createSpawnHandler(bot, state, botConfig, config, isMain, callbacks) {
   return async () => {
     dlog("EVENT", "Spawned", "spawn");
-
-    // Safety check: ensure entity exists before accessing pathfinder
     if (!bot.entity) {
       log("ERROR", "Spawn handler: bot.entity is undefined", bot.username);
       return;
     }
-
-    // Stop any active pathfinding
     try {
       bot.pathfinder.stop();
     } catch (e) {
       log("ERROR", `Failed to stop pathfinder: ${e.message}`, bot.username);
     }
-
-    // Reset kick counter on successful spawn
     state.consecutiveKicks = 0;
 
     if (state.initialSetupDone) {
-      // On respawn, just reset movements and return
       try {
         setMovements(bot);
       } catch (e) {
@@ -58,8 +51,6 @@ function createSpawnHandler(bot, state, botConfig, config, isMain, callbacks) {
         bot.chat(loginCmd);
         log("BOOT", "Sent login command", bot.username);
       }, 2000);
-
-    // Wait for entity to be fully loaded
     await bot.waitForTicks(40);
 
     try {
@@ -74,12 +65,12 @@ function createSpawnHandler(bot, state, botConfig, config, isMain, callbacks) {
       return;
     }
 
+    if (isMain && callbacks.startViewer) callbacks.startViewer(bot);
     if (isMain && callbacks.startKitModule) callbacks.startKitModule();
     if (callbacks.startAutoMessages)
       callbacks.startAutoMessages(bot, state, botConfig, config);
 
     setTimeout(async () => {
-      // Safety check before portal walk
       if (!bot.entity) {
         log(
           "ERROR",
@@ -158,8 +149,6 @@ function createBot(botConfig, isMain, config, callbacks) {
     state.bot.on("connect", () => dlog("EVENT", "Connected"));
     state.bot.on("login", () => dlog("EVENT", "Logged in", "login"));
     state.bot.on("error", (e) => log("ERROR", e.message, name));
-
-    // Kick handler with alert system
     state.bot.on("kicked", (r) => {
       state.consecutiveKicks++;
       log("ERROR", `Kicked: ${r}`, name);
@@ -180,7 +169,6 @@ function createBot(botConfig, isMain, config, callbacks) {
 
     state.bot.on("respawn", () => {
       dlog("EVENT", "Respawned", "respawn");
-      // Safety: wait a tick before trying to stop pathfinder
       try {
         state.bot.pathfinder.stop();
       } catch (e) {

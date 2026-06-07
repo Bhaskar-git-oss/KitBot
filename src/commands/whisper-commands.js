@@ -30,8 +30,6 @@ async function handleWhisperCommand(
   const isAdminUser = isAdmin(username);
   const isWhitelistedUser = isUser(username);
   const isAllowed = isAdminUser || isWhitelistedUser;
-
-  // Reject unauthorized players attempting known commands (except help)
   if (!isAllowed && KNOWN_COMMANDS.includes(cmd) && cmd !== "help") {
     bot.chat(`/w ${username} You're not authorized.`);
     return;
@@ -76,7 +74,6 @@ async function handleWhisperCommand(
       break;
 
     case "kit":
-      if (!isAllowed) return;
       if (!args[1]) {
         bot.chat(`/w ${username} Usage: kit <type> [count]`);
         break;

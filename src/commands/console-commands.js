@@ -34,10 +34,9 @@ async function handleConsoleCommand(
   enqueueKitFn,
   handleKitFn,
 ) {
-  const [cmd_name, a1, a2, a3] = [cmd, args[1], args[2], args[3]];
+  const [a1, a2, a3] = [args[1], args[2], args[3]];
 
   try {
-    // Validate bot exists for commands that need it
     if (
       [
         "say",
@@ -57,7 +56,7 @@ async function handleConsoleCommand(
       return;
     }
 
-    switch (cmd_name) {
+    switch (cmd) {
       case "say":
         bot.chat(args.slice(1).join(" "));
         log("CONSOLE", `-> Chat: ${args.slice(1).join(" ")}`);
@@ -168,7 +167,6 @@ async function handleConsoleCommand(
       case "stocks": {
         log("CONSOLE", "Scanning chests...");
         try {
-          // Get main bot's config (index 0)
           const botConfig = config.bots[0];
           if (!botConfig) {
             log("CONSOLE", "No bot config found");
@@ -217,8 +215,7 @@ async function handleConsoleCommand(
         break;
 
       default:
-        if (cmd_name)
-          log("CONSOLE", "Unknown command. Type 'help' for a list.");
+        if (cmd) log("CONSOLE", "Unknown command. Type 'help' for a list.");
     }
   } catch (e) {
     log("ERROR", `Unexpected error: ${e.message}`);

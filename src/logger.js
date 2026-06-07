@@ -23,7 +23,6 @@ const LOG_COLORS = {
 };
 
 function initLogger() {
-  // No-op now - logger doesn't need readline reference
 }
 
 function log(type, msg, bot = null) {

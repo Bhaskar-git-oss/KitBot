@@ -58,24 +58,16 @@ function createREPL(mainBot, instances, config, enqueueKitFn, handleKitFn) {
 
 async function gracefulShutdown(rl, instances) {
   log("BOOT", "Shutting down gracefully...");
-
-  // Close readline
   rl.close();
-
-  // Disconnect all bots
   for (const inst of instances) {
     if (inst && inst.bot) {
       try {
         inst.bot.quit();
-      } catch (e) {
-        // Ignore errors during shutdown
-      }
+      } catch (e) {}
     }
   }
-
-  // Give bots time to disconnect
   await new Promise((r) => setTimeout(r, 1000));
-
+  log("BOOT", "Goodbye!");
   process.exit(0);
 }
 

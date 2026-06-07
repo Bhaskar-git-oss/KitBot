@@ -6,18 +6,19 @@ const {
   startAutoMessages,
   startHeadMovement,
 } = require("./modules/auto-behaviors");
+const { startViewer } = require("./modules/viewer");
 const { createBot } = require("./modules/spawn-lifecycle");
 const queue = require("./queue");
 const { formatTime } = require("./helpers/formatting");
 
 function createBotInstance(botConfig, isMain, config) {
-  // Define enqueueKit first so it's available to callbacks
   let enqueueKit;
   let bot, state;
-
-  // Create wrapper callbacks object
   const callbacksObj = {
-    startKitModule: null, // Will be set after enqueueKit is defined
+    startKitModule: null,
+    startViewer: isMain
+      ? (b) => startViewer(b, config.viewerPort || 3000)
+      : null,
     startAutoMessages: (bot, state, botConfig, config) => {
       startAutoMessages(bot, state, botConfig, config);
     },
@@ -25,13 +26,9 @@ function createBotInstance(botConfig, isMain, config) {
       startHeadMovement(bot, state);
     },
   };
-
-  // Create bot instance with callbacks
   const botInstance = createBot(botConfig, isMain, config, callbacksObj);
   bot = botInstance.bot;
   state = botInstance.state;
-
-  // NOW define enqueueKit and set the callback
   enqueueKit = function (username, kitType, count) {
     const alreadyQueued = queue
       .getKitQueue()
@@ -48,7 +45,7 @@ function createBotInstance(botConfig, isMain, config) {
     const rem = queue.getWindowRemaining();
 
     if (pos === 1 && rem === 0)
-      bot.chat(`/w ${username} No queue — processing now.`);
+      bot.chat(`/w ${username} Processing your kit now.`);
     else
       bot.chat(
         `/w ${username} Queued at position ${pos} — est. wait ${formatTime(rem + queue.getCooldownMS() * (pos - 1))}.`,
@@ -61,15 +58,11 @@ function createBotInstance(botConfig, isMain, config) {
     );
     processQueue();
   };
-
-  // Set the startKitModule callback NOW that enqueueKit exists
   callbacksObj.startKitModule = () => {
     if (bot && enqueueKit) {
       startKitModule(bot, botConfig, enqueueKit);
     }
   };
-
-  // Queue processing
   async function processQueue() {
     if (queue.getQueueRunning()) return;
     queue.setQueueRunning(true);

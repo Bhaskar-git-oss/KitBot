@@ -3,11 +3,13 @@ const { GoalBlock } = require("mineflayer-pathfinder").goals;
 const { log } = require("../logger");
 const { formatTime } = require("../helpers/formatting");
 const queue = require("../queue");
-
-// Minecraft block reach distance
 const REACH_DISTANCE = 4.5;
-// Safe buffer to ensure we're close enough
 const SAFE_DISTANCE = 4;
+const CHEST_OPEN_DELAY = 1500;
+const ITEM_SYNC_DELAY = 2000;
+const PRE_RESPAWN_DELAY = 3000;
+const TPA_MIN_DISTANCE = 3;
+const TPA_PERSISTENCE_MS = 1500;
 
 async function handleKit(bot, state, botConfig, username, kitType, count) {
   const chests = botConfig.kitChests;
@@ -28,8 +30,6 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
     const cp = chests[kitType];
     const chestPos = new Vec3(cp.x, cp.y, cp.z);
     const startDist = bot.entity.position.distanceTo(chestPos);
-
-    // Check if we need to move to chest
     if (startDist > SAFE_DISTANCE) {
       log(
         "MOVE",
@@ -41,11 +41,8 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
         log("MOVE", `Reached chest location`, bot.username);
       } catch (pathErr) {
         log("ERROR", `Pathfinder failed: ${pathErr.message}`, bot.username);
-        // Don't just swallow the error - check if we're close enough now
       }
     }
-
-    // After pathfinding, verify we're actually close enough to interact
     const finalDist = bot.entity.position.distanceTo(chestPos);
     if (finalDist > REACH_DISTANCE) {
       log(
@@ -58,8 +55,6 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
       );
       return false;
     }
-
-    // Verify chest block exists
     const block = bot.blockAt(chestPos);
     if (!block) {
       log(
@@ -70,18 +65,17 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
       bot.chat(`/w ${username} Chest not found. Server lag? Try again later.`);
       return false;
     }
-
-    // Open chest and withdraw items
+    log("KIT", `Waiting ${CHEST_OPEN_DELAY}ms before opening chest...`, bot.username);
+    await new Promise(r => setTimeout(r, CHEST_OPEN_DELAY));
     let chest;
     try {
       chest = await bot.openContainer(block);
+      log("KIT", `Opened chest successfully`, bot.username);
     } catch (openErr) {
       log("ERROR", `Failed to open chest: ${openErr.message}`, bot.username);
       bot.chat(`/w ${username} Chest locked or inaccessible. Try again later.`);
       return false;
     }
-
-    // Withdraw items - with type validation
     let taken = 0;
     const chestItems = chest.containerItems();
 
@@ -94,8 +88,6 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
 
     for (const item of chestItems) {
       if (taken >= count) break;
-
-      // Only take shulker boxes (or items marked as kit items)
       if (!item.name.includes("shulker")) {
         log("MOVE", `Skipping non-shulker item: ${item.name}`, bot.username);
         continue;
@@ -124,8 +116,6 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
     }
 
     log("KIT", `Successfully withdrew ${taken} shulker(s)`, bot.username);
-
-    // Send TPA and wait for player
     bot.chat(`/tpa ${username}`);
     log("KIT", `TPA sent to ${username}`, bot.username);
     bot.chat(`/w ${username} TPA sent! Accept it to get your kit.`);
@@ -134,72 +124,100 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
     let delivered = false;
     const DELIVERY_TIMEOUT = queue.getDeliveryTimeout();
     let lastPlayerCheck = 0;
+    let tpaAcceptanceStart = null;
 
     while (Date.now() - start < DELIVERY_TIMEOUT) {
       await bot.waitForTicks(20);
-
-      // Check player status with safety
       const player = bot.players[username];
       if (!player || !player.entity) {
-        // Log every 2 seconds instead of every tick
         if (Date.now() - lastPlayerCheck > 2000) {
           log("KIT", `Waiting for ${username} to accept TPA...`, bot.username);
           lastPlayerCheck = Date.now();
         }
+        tpaAcceptanceStart = null;
         continue;
       }
 
       const target = player.entity;
-      if (!target.position) continue;
+      if (!target.position) {
+        tpaAcceptanceStart = null;
+        continue;
+      }
 
       const distance = bot.entity.position.distanceTo(target.position);
 
       if (isNaN(distance) || distance > 100) {
-        // Invalid distance, wait for next update
+        tpaAcceptanceStart = null;
         continue;
       }
-
-      if (distance < 6) {
-        log(
-          "KIT",
-          `${username} accepted TPA (${distance.toFixed(1)} blocks away)`,
-          bot.username,
-        );
-        await bot.lookAt(target.position.offset(0, 1.6, 0), true);
-
-        // Drop shulkers from inventory
-        const invItems = bot.inventory.items();
-        let dropped = 0;
-
-        for (const item of invItems) {
-          if (!item.name.includes("shulker")) continue;
-
-          try {
-            await bot.tossStack(item);
-            dropped++;
-            log("KIT", `Dropped ${item.name}`, bot.username);
-            await bot.waitForTicks(10);
-          } catch (tossErr) {
-            log(
-              "ERROR",
-              `Failed to drop ${item.name}: ${tossErr.message}`,
-              bot.username,
-            );
-          }
-        }
-
-        if (dropped > 0) {
-          delivered = true;
+      if (distance < TPA_MIN_DISTANCE) {
+        if (!tpaAcceptanceStart) {
+          tpaAcceptanceStart = Date.now();
           log(
             "KIT",
-            `Successfully dropped ${dropped} shulker(s) to ${username}`,
+            `${username} entering TPA acceptance range (${distance.toFixed(1)} blocks)`,
             bot.username,
           );
-          break;
-        } else {
-          log("ERROR", `No shulkers in inventory to drop`, bot.username);
-          break;
+          continue;
         }
+        const acceptanceDuration = Date.now() - tpaAcceptanceStart;
+        if (acceptanceDuration >= TPA_PERSISTENCE_MS) {
+          log(
+            "KIT",
+            `${username} confirmed TPA acceptance (${distance.toFixed(1)} blocks away for ${acceptanceDuration}ms)`,
+            bot.username,
+          );
+          
+          await bot.lookAt(target.position.offset(0, 1.6, 0), true);
+          const invItems = bot.inventory.items();
+          let dropped = 0;
+
+          for (const item of invItems) {
+            if (!item.name.includes("shulker")) continue;
+
+            try {
+              await bot.tossStack(item);
+              dropped++;
+              log("KIT", `Dropped ${item.name}`, bot.username);
+              await bot.waitForTicks(10);
+            } catch (tossErr) {
+              log(
+                "ERROR",
+                `Failed to drop ${item.name}: ${tossErr.message}`,
+                bot.username,
+              );
+            }
+          }
+
+          if (dropped > 0) {
+            delivered = true;
+            log(
+              "KIT",
+              `Successfully dropped ${dropped} shulker(s) to ${username}`,
+              bot.username,
+            );
+            log(
+              "KIT",
+              `Waiting ${ITEM_SYNC_DELAY}ms for item sync...`,
+              bot.username,
+            );
+            await new Promise(r => setTimeout(r, ITEM_SYNC_DELAY));
+
+            break;
+          } else {
+            log("ERROR", `No shulkers in inventory to drop`, bot.username);
+            break;
+          }
+        }
+      } else {
+        if (tpaAcceptanceStart) {
+          log(
+            "KIT",
+            `${username} moved away, resetting acceptance timer (${distance.toFixed(1)} blocks)`,
+            bot.username,
+          );
+        }
+        tpaAcceptanceStart = null;
       }
     }
 
@@ -211,8 +229,6 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
         bot.username,
       );
       bot.chat(`/w ${username} Delivery timed out. Accept the TPA next time!`);
-
-      // Return items to chest if timeout
       log("KIT", `Returning ${taken} item(s) to chest`, bot.username);
       return false;
     }
@@ -222,8 +238,13 @@ async function handleKit(bot, state, botConfig, username, kitType, count) {
       `/w ${username} Kit delivered! Next window in ${formatTime(COOLDOWN_MS)}.`,
     );
     log("KIT", `Delivery complete for ${username}`, bot.username);
-
-    await new Promise((r) => setTimeout(r, 3000));
+    log(
+      "KIT",
+      `Waiting ${PRE_RESPAWN_DELAY}ms before respawn...`,
+      bot.username,
+    );
+    await new Promise((r) => setTimeout(r, PRE_RESPAWN_DELAY));
+    
     bot.chat("/kill");
     return true;
   } catch (err) {

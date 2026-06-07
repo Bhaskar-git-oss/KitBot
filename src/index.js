@@ -5,26 +5,15 @@ const { initOperators } = require("./operators");
 const { initQueue } = require("./queue");
 const { createBotInstance } = require("./bot-factory");
 const { createREPL } = require("./repl");
-const readline = require("readline");
-
-let config = require("../config.json");
+const config = require("../config.json");
 
 console.log(
   gradient.pastel.multiline(figlet.textSync("> KitBot", { font: "Slant" })),
 );
 
-// Initialize readline for logger
-const tempRl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: `kitbot> `,
-});
-
-initLogger(tempRl);
+initLogger();
 initOperators(config);
 initQueue(config);
-
-// Create bot instances
 const instances = new Array(config.bots.length).fill(null);
 config.bots.forEach((cfg, i) => {
   setTimeout(() => {
@@ -34,13 +23,22 @@ config.bots.forEach((cfg, i) => {
 
 const mainBot = () => instances[0]?.bot;
 const mainInst = () => instances[0];
-
-// Create REPL
 createREPL(
   mainBot,
   instances,
   config,
-  (username, kitType, count) =>
-    mainInst()?.enqueueKit(username, kitType, count),
-  (username, kitType, count) => mainInst()?.handleKit(username, kitType, count),
+  (username, kitType, count) => {
+    if (!mainInst()) {
+      log("ERROR", "Bot not ready yet");
+      return;
+    }
+    mainInst().enqueueKit(username, kitType, count);
+  },
+  (username, kitType, count) => {
+    if (!mainInst()) {
+      log("ERROR", "Bot not ready yet");
+      return;
+    }
+    mainInst().handleKit(username, kitType, count);
+  },
 );
