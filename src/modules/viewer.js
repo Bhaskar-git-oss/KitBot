@@ -8,7 +8,7 @@ function startViewer(bot, port) {
     const { mineflayer: mineflayerViewer } = require("prismarine-viewer");
     mineflayerViewer(bot, { port, firstPerson: true });
     started = true;
-    log("BOOT", `Viewer running at http:
+    log("BOOT", "Viewer running at http://localhost:" + port, bot.username);
   } catch (err) {
     log("ERROR", `Viewer failed to start: ${err.message}`, bot.username);
   }
